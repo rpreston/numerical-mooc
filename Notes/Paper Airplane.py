@@ -26,10 +26,12 @@ theta0 = 0.0 # initial angle of trajectory
 x0 = 0.0     # horizotal position is arbitrary
 y0 = 10.0  # initial altitude
 
-T = 10.9                          # final time
+
+T = 11.                          # final time
 dt = 0.1                           # time increment
 N = int(T/dt) + 1                  # number of time-steps
 t = numpy.linspace(0.0, T, N)      # time discretization
+
 
 # initialize the array containing the solution for each time-step
 u = numpy.empty((N, 4))
@@ -85,9 +87,10 @@ def nominalRun():
     
     u[0] = numpy.array([v_t, thetaInit, x0, y0])
     
-    
-    for n in range(N-1):
+    n=0
+    while u[n][3] >= 0.0:
         u[n+1] = euler_step(u[n],f,dt)
+        n+=1
     x=u[:,2]
     y=u[:,3]
    
@@ -102,6 +105,7 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     
     xm = numpy.empty((int(floorSqrtIterations**2),N))
     ym = numpy.empty((int(floorSqrtIterations**2),N))
+    maxDistance = numpy.empty((int(floorSqrtIterations**2)))
     #get floor sqrt iterations    
     
     global v0
@@ -145,13 +149,20 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     #print floorSqrtIterations**2.
     for temp in range(0,int(floorSqrtIterations**2)):
         plt.plot(xm[temp][:N-1],ym[temp][:N-1], 'k-',lw=1);
+    
+    nominalRun()
+    #plt.figure(figsize=(8,8))
+    for temp in range(0,int(floorSqrtIterations**2)):
+        maxDistance[temp] = max(xm[temp])
+        #plt.plot(t[:N-1],xm[temp][:N-1], 'k-',lw=1);
         
         #print temp
         #plt.plot(t[:N-1],xm[temp][:N-1],'b',lw=1)
         #plt.plot(t[:N-1],ym[temp][:N-1],'r',lw=1)
+    print max(maxDistance)
     
-monteCarlo(1000.,thetaInit+0.8,thetaInit-0.8,v_t+0.5,v_t-0.5 )
-nominalRun()
+monteCarlo(5000.,thetaInit+0.8,thetaInit-0.8,v_t+0.8,v_t-0.8)
+
         
 
 # get the glider's position with respect to the time
