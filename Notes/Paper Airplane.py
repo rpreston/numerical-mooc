@@ -4,7 +4,7 @@ Created on Wed Sep 10 20:31:29 2014
 
 @author: Ryan
 """
-from math import sin, cos, log, ceil
+from math import sin, cos, log, ceil, floor, sqrt
 import numpy
 import matplotlib.pyplot as plt
 
@@ -21,11 +21,18 @@ C_L = 1.0    # for convenience, use C_L = 1
 
 ### set initial conditions ###
 v0 = v_t     # start at the trim velocity (or add a delta)
+thetaInit = 0.0
 theta0 = 0.0 # initial angle of trajectory
 x0 = 0.0     # horizotal position is arbitrary
-y0 = 1000.0  # initial altitude
+y0 = 10.0  # initial altitude
 
+T = 10.9                          # final time
+dt = 0.1                           # time increment
+N = int(T/dt) + 1                  # number of time-steps
+t = numpy.linspace(0.0, T, N)      # time discretization
 
+# initialize the array containing the solution for each time-step
+u = numpy.empty((N, 4))
 
 def f(u):
     """Returns the right-hand side of the phugoid system of equations.
@@ -67,72 +74,84 @@ def euler_step(u, f, dt):
     u_n_plus_1 : array of float
         approximate solution at the next time step.
     """
-    print u+dt*f(u)
+    #print u+dt*f(u)
     return u + dt * f(u)
     
-T = 100.0                          # final time
-dt = 0.1                           # time increment
-N = int(T/dt) + 1                  # number of time-steps
-t = numpy.linspace(0.0, T, N)      # time discretization
 
-# initialize the array containing the solution for each time-step
-u = numpy.empty((N, 4))
 # fill 1st element with initial values
 
 
 def nominalRun():
     
-    theta0 = 0.0
-    u[0] = numpy.array([v_t, theta0, x0, y0])
+    u[0] = numpy.array([v_t, thetaInit, x0, y0])
     
     
     for n in range(N-1):
         u[n+1] = euler_step(u[n],f,dt)
     x=u[:,2]
     y=u[:,3]
-    plt.figure(figsize=(8,6))
-    plt.grid(True)
-    plt.xlabel(r'x', fontsize=18)
-    plt.ylabel(r'y', fontsize=18)
-    plt.title('Glider Nominal trajectory, flight time = %.2f' % T, fontsize=18)
-    plt.plot(x,y,"k-",lw=2)
-    plt.plot(t,x,'b-',lw=2)
-    plt.plot(t,y,'r',lw=2)
+   
+    plt.plot(x,y,"b",lw=2)
+    #plt.plot(t,x,'b-',lw=2)
+    #plt.plot(t,y,'r',lw=2)
 
-def monteCarlo(iterations,maxArg,minArg):
-    xm = numpy.empty((iterations,N))
-    ym = numpy.empty((iterations,N))
+def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
+    global xm
+    global ym
+    floorSqrtIterations = floor(sqrt(iterations))
     
-    v0=v_t
-    theta0 = minArg
+    xm = numpy.empty((int(floorSqrtIterations**2),N))
+    ym = numpy.empty((int(floorSqrtIterations**2),N))
+    #get floor sqrt iterations    
+    
+    global v0
+    global theta0
     
     
-    for i in range(0,iterations):
-        theta0 += (maxArg-minArg)/(iterations)
-        u = numpy.empty((N,4))
-        u[0] = numpy.array([v0, theta0, x0, y0])
-        
-        for n in range(N-1):
-            
-            u[n+1] = euler_step(u[n], f, dt)
-        
-        x = u[:,2]
-        y = u[:,3]
-        for p in range(N-1):
-            xm[i][p] = x[p]
-            ym[i][p] = y[p]
-    plt.figure(figsize=(8,6))
+    
+    v0 = minArgV0
+    theta0 = minArgTheta
+    
+    for j in range(0,int(floorSqrtIterations)):
+        v0+= (maxArgV0-minArgV0)/(floorSqrtIterations)
+        theta0 = minArgTheta
+        for i in range(0,int(floorSqrtIterations)):
+            theta0 += (maxArgTheta-minArgTheta)/(floorSqrtIterations)
+            u = numpy.empty((N,4))
+            u[0] = numpy.array([v0, theta0, x0, y0])
+            #print 'u'
+            #print u[0]
+            #print 'i'
+            #print i*j
+            n = 0
+            while u[n][3] >= 0.0:
+                
+                u[n+1] = euler_step(u[n], f, dt)
+                n+=1
+                
+            x = u[:,2]
+            y = u[:,3]
+            for p in range(N-1):
+                xm[j*(int(floorSqrtIterations))+i][p] = x[p]
+                ym[j*(int(floorSqrtIterations))+i][p] = y[p]
+    print "# of Iterations"
+    print floorSqrtIterations
+    
+    plt.figure(figsize=(8,8))
     plt.grid(True)
     plt.xlabel(r'x', fontsize=18)
     plt.ylabel(r'y', fontsize=18)
     plt.title('Glider trajectory, flight time = %.2f' % T, fontsize=18)
-    for temp in range(0,iterations):
+    #print floorSqrtIterations**2.
+    for temp in range(0,int(floorSqrtIterations**2)):
         plt.plot(xm[temp][:N-1],ym[temp][:N-1], 'k-',lw=1);
-        plt.plot(t[:N-1],xm[temp][:N-1],'b',lw=1)
-        plt.plot(t[:N-1],ym[temp][:N-1],'r',lw=1)
+        
+        #print temp
+        #plt.plot(t[:N-1],xm[temp][:N-1],'b',lw=1)
+        #plt.plot(t[:N-1],ym[temp][:N-1],'r',lw=1)
     
-monteCarlo(50,numpy.pi,0.0)
-
+monteCarlo(1000.,thetaInit+0.8,thetaInit-0.8,v_t+0.5,v_t-0.5 )
+nominalRun()
         
 
 # get the glider's position with respect to the time
