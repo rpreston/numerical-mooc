@@ -24,11 +24,11 @@ v0 = v_t     # start at the trim velocity (or add a delta)
 thetaInit = 0.0
 theta0 = 0.0 # initial angle of trajectory
 x0 = 0.0     # horizotal position is arbitrary
-y0 = 10.0  # initial altitude
+y0 = 1.7780  # initial altitude in meters
 
 
-T = 11.                          # final time
-dt = 0.1                           # time increment
+T = 11.0                         # final time
+dt = 0.01                           # time increment
 N = int(T/dt) + 1                  # number of time-steps
 t = numpy.linspace(0.0, T, N)      # time discretization
 
@@ -57,12 +57,9 @@ def f(u):
     x = u[2]
     y = u[3]
     if(u[3] <= 0.0):
-        y = 0.0
-        u[3] = 0.0
-        u[2] = 0.0
-        x = 0.0
-    
-    return numpy.array([-g*sin(theta) - C_D/C_L*g/v_t**2*v**2,
+        return numpy.array([0.0,0.0,0.0,0.0])
+    else:
+        return numpy.array([-g*sin(theta) - C_D/C_L*g/v_t**2*v**2,
                       -g*cos(theta)/v + g/v_t**2*v,
                       v*cos(theta),
                       v*sin(theta)])
@@ -85,8 +82,7 @@ def euler_step(u, f, dt):
         approximate solution at the next time step.
     """
     #print u+dt*f(u)
-    if u[3]<= 0.0:
-        return u
+    
     return u + dt * f(u)
     
 
@@ -97,53 +93,42 @@ def paramRun(thetaArg,v0Arg):
     u[0] = numpy.array([v0Arg, thetaArg, x0, y0])
     
     n=0
-    #while u[n][3] >= 0.4:
-    for n in range(0,N-1):
-        if u[n+1,3]<0.5 and u[n+1,3]>u[n,3]:
-            u[n+1][3] = 0
-            u[n+1][2] = u[n][2]
-        else:
-            u[n+1] = euler_step(u[n],f,dt)
-        #n+=1
-    
-    for n in range(1,N):
-        if u[n-1,3]<0.0:
-            u[n,3]=0.0
-            u[n,2]=u[n-1,2]
-    
+    while u[n][3] > 0.0:
+        u[n+1] = euler_step(u[n],f,dt)
+        n+=1
+    i=0
+    for i in range(n,N):
+        u[i] = numpy.array([u[i-1,0],u[i-1,1],u[i-1,2],u[i-1,3]])
+        
     x=u[:,2]
     y=u[:,3]
    
-    plt.plot(x,y,lw=2)
+    plt.plot(x,y,lw=1)
     
 def nominalRun():
     
     u[0] = numpy.array([v_t, thetaInit, x0, y0])
     
     n=0
-    #while u[n][3] >= 0.4:
-    for n in range(0,N-1):
-        if u[n+1][3]<0.5 and u[n+1][3]>u[n][3]:
-            u[n+1][3] = 0.0
-            u[n+1][2] = u[n][2]
-        else:
-            u[n+1] = euler_step(u[n],f,dt) 
-        #n+=1
-    for n in range(1,N-1):
-        if u[n-1,3]<0.0:
-            u[n,3]=0.0
-            u[n,2]=u[n-1,2]
+    while u[n][3] > 0.0:
+        u[n+1] = euler_step(u[n],f,dt)
+        n+=1
+    i=0
+    for i in range(n,N):
+        u[i] = numpy.array([u[i-1,0],u[i-1,1],u[i-1,2],u[i-1,3]])
         
     x=u[:,2]
     y=u[:,3]
    
-    plt.plot(x,y,"b",lw=2)
+    plt.plot(x,y,"b",lw=3)
     #plt.plot(t,x,'b-',lw=2)
     #plt.plot(t,y,'r',lw=2)
 
 def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     global xm
     global ym
+    global vm
+    global thetam
     global global_V0Max
     global global_ThetaMax
     #global vm
@@ -169,6 +154,13 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     v0 = minArgV0
     theta0 = minArgTheta
     plt.figure(figsize=(8,8))
+    plt.grid(True)
+    plt.xlabel(r'x', fontsize=18)
+    plt.ylabel(r'y', fontsize=18)
+    plt.text(4, 1.4, 'V0 Range: [%.2f, %.2f]\nTheta0 Range: [%.2f, %.2f]' % (minArgV0,maxArgV0,minArgTheta,maxArgTheta),
+        bbox={'facecolor':'white', 'alpha':0.5, 'pad':10})
+    plt.title('Monte Carlo Trajectories,\nNumber of Iterations = %.2f' % iterations, fontsize=18)
+    
     for j in range(0,int(floorSqrtIterations)):
         v0+= (maxArgV0-minArgV0)/(floorSqrtIterations)
         theta0 = minArgTheta
@@ -177,47 +169,49 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
             u = numpy.zeros((N,4))
             u[0] = numpy.array([v0, theta0, x0, y0])
             
+            
             paramRun(theta0,v0)
-            nominalRun()
-            #print 'u'
-            #print u[0]
-            #print 'i'
-            #print i*j
+            
             n = 0
             #while u[n][3] >= 0.0:
             for n in range(0,N-1):
-                if u[n+1][3]<0.5 and u[n+1][3]>u[n][3]:
+                if u[n+1][3]<=0.0 and u[n+1][3]>u[n][3]:
                     u[n+1][3] = 0.0
                     u[n+1][2] = u[n][2]
                 else:
                     u[n+1] = euler_step(u[n],f,dt)
                 #n+=1
-
-            for n in range(1,N-1):
-                if u[n-1,3]<0.0:
-                    u[n,3]=0.0
-                    u[n,2]=u[n-1,2]            
+            tempLoop = 0
+            
+            for tempLoop in range(n,N-1):
+                u[tempLoop,0]=u[tempLoop-1,0]
+                u[tempLoop,1]=u[tempLoop-1,1]
+                u[tempLoop,3]=u[tempLoop-1,3]
+                u[tempLoop,2]=u[tempLoop-1,2]            
             
             x = u[:,2]
             y = u[:,3]
             v = u[:,0]
+            
             the = u[:,1]
             
-            for p in range(N-1):
+            for p in range(1,N-1):
                 if y[p] <= 0.0:
-                    x[p] = 0.0
-                    y[p] = 0.0
+                    x[p] = x[p-1]
+                    y[p] = y[p-1]
             
             for p in range(N-1):
-                xm[j*(int(floorSqrtIterations))+i][p] = x[p]
-                ym[j*(int(floorSqrtIterations))+i][p] = y[p]
-                vm[j*(int(floorSqrtIterations))+i][p] = v[p]
-                thetam[j*(int(floorSqrtIterations))+i][p] = the[p]
+                xm[j*(int(floorSqrtIterations))+i][p] = numpy.copy(x[p])
+                ym[j*(int(floorSqrtIterations))+i][p] = numpy.copy(y[p])
+                vm[j*(int(floorSqrtIterations))+i][p] = numpy.copy(v[p])
+                thetam[j*(int(floorSqrtIterations))+i][p] = numpy.copy(the[p])
             counter = 0
             for p in ym[j*(int(floorSqrtIterations))+i]:
                 if p < 0.0:
                     xm[j*(int(floorSqrtIterations))+i][counter] = -1
                     ym[j*(int(floorSqrtIterations))+i][counter] = -1
+                    vm[j*(int(floorSqrtIterations))+i][counter] = -1
+                    thetam[j*(int(floorSqrtIterations))+i][counter] = -1
                 counter+=1
            
            
@@ -229,7 +223,9 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     plt.grid(True)
     plt.xlabel(r'x', fontsize=18)
     plt.ylabel(r'y', fontsize=18)
-    plt.title('Glider trajectory, flight time = %.2f' % T, fontsize=18)
+    plt.text(4, 1.4, 'V0 Range: [%.2f, %.2f]\nTheta0 Range: [%.2f, %.2f]' % (minArgV0,maxArgV0,minArgTheta,maxArgTheta),
+        bbox={'facecolor':'white', 'alpha':0.5, 'pad':10})
+    plt.title('Monte Carlo Trajectories,\nNumber of Iterations = %.2f' % iterations, fontsize=18)
     #print floorSqrtIterations**2.
     for temp in range(0,int(floorSqrtIterations**2)):
         plt.plot(xm[temp][:N-1],ym[temp][:N-1], 'k-',lw=1);
@@ -239,8 +235,8 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     for temp in range(0,int(floorSqrtIterations**2)):
         maxDistance[temp] = max(xm[temp])
         maxArg[temp] = numpy.argmax(xm[temp])
-        maxTheta[temp] = max(thetam[0])
-        maxV0[temp] = max(vm[0])
+        maxTheta[temp] = thetam[temp,0]
+        maxV0[temp] = vm[temp,0]
         
     
         #plt.plot(t[:N-1],xm[temp][:N-1], 'k-',lw=1);
@@ -252,6 +248,8 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     print max(maxDistance)
     print numpy.argmax(maxDistance)
     print maxDistance[numpy.argmax(maxDistance)]
+    print "Theta: %.2f" % maxTheta[numpy.argmax(maxDistance)]
+    print "V0: %.2f" % maxV0[numpy.argmax(maxDistance)]
     tempArg = numpy.argmax(maxDistance)
     
     #print "init V0 for max X"
@@ -259,10 +257,14 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     #print "init theta for max X"
     global_ThetaMax = maxTheta[tempArg]
     
-monteCarlo(5000.,thetaInit+0.8,thetaInit-0.8,v_t+0.8,v_t-0.8)
-
+monteCarlo(1000.,thetaInit+0.8,thetaInit-0.8,v_t+v_t/2,v_t-v_t)
+paramRun(global_ThetaMax,global_V0Max)
 
 plt.figure(figsize=(8,8))
+plt.grid(True)
+plt.xlabel(r"x", fontsize=18)
+plt.ylabel(r"y", fontsize=18)
+plt.title("Glider Nominal Trajectory vs. Max Trajectory\n(v0 = %.2f , theta0 = %.2f vs. v0 = %.2f, theta0 = %.2f)\n" % (v_t, theta0, global_V0Max, global_ThetaMax), fontsize=18)
 nominalRun()
 paramRun(global_ThetaMax,global_V0Max)
 
