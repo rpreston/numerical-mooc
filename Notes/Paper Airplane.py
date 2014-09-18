@@ -157,7 +157,7 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     plt.grid(True)
     plt.xlabel(r'x', fontsize=18)
     plt.ylabel(r'y', fontsize=18)
-    plt.text(4, 1.4, 'V0 Range: [%.2f, %.2f]\nTheta0 Range: [%.2f, %.2f]' % (minArgV0,maxArgV0,minArgTheta,maxArgTheta),
+    plt.text(4, 3.5, 'V0 Range: [%.2f, %.2f]\nTheta0 Range: [%.2f, %.2f]' % (minArgV0,maxArgV0,minArgTheta,maxArgTheta),
         bbox={'facecolor':'white', 'alpha':0.5, 'pad':10})
     plt.title('Monte Carlo Trajectories,\nNumber of Iterations = %.2f' % iterations, fontsize=18)
     
@@ -223,7 +223,7 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     plt.grid(True)
     plt.xlabel(r'x', fontsize=18)
     plt.ylabel(r'y', fontsize=18)
-    plt.text(4, 1.4, 'V0 Range: [%.2f, %.2f]\nTheta0 Range: [%.2f, %.2f]' % (minArgV0,maxArgV0,minArgTheta,maxArgTheta),
+    plt.text(4, 3.5, 'V0 Range: [%.2f, %.2f]\nTheta0 Range: [%.2f, %.2f]' % (minArgV0,maxArgV0,minArgTheta,maxArgTheta),
         bbox={'facecolor':'white', 'alpha':0.5, 'pad':10})
     plt.title('Monte Carlo Trajectories,\nNumber of Iterations = %.2f' % iterations, fontsize=18)
     #print floorSqrtIterations**2.
