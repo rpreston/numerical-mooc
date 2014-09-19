@@ -28,7 +28,7 @@ y0 = 1.7780  # initial altitude in meters
 
 
 T = 11.0                         # final time
-dt = 0.01                           # time increment
+dt = 0.1                           # time increment
 N = int(T/dt) + 1                  # number of time-steps
 t = numpy.linspace(0.0, T, N)      # time discretization
 
@@ -37,6 +37,7 @@ global_ThetaMax = 0.0
 
 # initialize the array containing the solution for each time-step
 u = numpy.empty((N, 4))
+w = numpy.empty((N, 4))
 
 def f(u):
     """Returns the right-hand side of the phugoid system of equations.
@@ -63,8 +64,11 @@ def f(u):
                       -g*cos(theta)/v + g/v_t**2*v,
                       v*cos(theta),
                       v*sin(theta)])
-                      
-def euler_step(u, f, dt):
+def euler_step_order2(u,f,dt):
+    u_half = u + (dt/2.)*f(u)
+    return u + dt * f(u_half)
+
+def euler_step_order1(u, f, dt):
     """Returns the solution at the next time-step using Euler's method.
     
     Parameters
@@ -94,7 +98,7 @@ def paramRun(thetaArg,v0Arg):
     
     n=0
     while u[n][3] > 0.0:
-        u[n+1] = euler_step(u[n],f,dt)
+        u[n+1] = euler_step_order1(u[n],f,dt)
         n+=1
     i=0
     for i in range(n,N):
@@ -108,19 +112,26 @@ def paramRun(thetaArg,v0Arg):
 def nominalRun():
     
     u[0] = numpy.array([v_t, thetaInit, x0, y0])
-    
+    w[0] = numpy.array([v_t, thetaInit, x0, y0])
     n=0
     while u[n][3] > 0.0:
-        u[n+1] = euler_step(u[n],f,dt)
+        u[n+1] = euler_step_order1(u[n],f,dt)
+        w[n+1] = euler_step_order2(w[n],f,dt)
         n+=1
     i=0
     for i in range(n,N):
         u[i] = numpy.array([u[i-1,0],u[i-1,1],u[i-1,2],u[i-1,3]])
+        w[i] = numpy.array([w[i-1,0],w[i-1,1],w[i-1,2],w[i-1,3]])
         
-    x=u[:,2]
-    y=u[:,3]
-   
-    plt.plot(x,y,"b",lw=3)
+    x1=u[:,2]
+    y1=u[:,3]
+    
+    x2=w[:,2]   
+    y2=w[:,3]
+    
+    plt.plot(x1,y1,"r-",lw=2)
+    plt.plot(x2,y2,"b-",lw=2)
+    #plt.plot(x,y,"b",lw=3)
     #plt.plot(t,x,'b-',lw=2)
     #plt.plot(t,y,'r',lw=2)
 
@@ -179,7 +190,7 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
                     u[n+1][3] = 0.0
                     u[n+1][2] = u[n][2]
                 else:
-                    u[n+1] = euler_step(u[n],f,dt)
+                    u[n+1] = euler_step_order1(u[n],f,dt)
                 #n+=1
             tempLoop = 0
             
@@ -257,16 +268,18 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     #print "init theta for max X"
     global_ThetaMax = maxTheta[tempArg]
     
+'''
 monteCarlo(1000.,thetaInit+0.8,thetaInit-0.8,v_t+v_t/2,v_t-v_t)
 paramRun(global_ThetaMax,global_V0Max)
-
+'''
 plt.figure(figsize=(8,8))
 plt.grid(True)
 plt.xlabel(r"x", fontsize=18)
 plt.ylabel(r"y", fontsize=18)
 plt.title("Glider Nominal Trajectory vs. Max Trajectory\n(v0 = %.2f , theta0 = %.2f vs. v0 = %.2f, theta0 = %.2f)\n" % (v_t, theta0, global_V0Max, global_ThetaMax), fontsize=18)
+
 nominalRun()
-paramRun(global_ThetaMax,global_V0Max)
+#paramRun(global_ThetaMax,global_V0Max)
 
 # get the glider's position with respect to the time
 #monteCarlo(50,7,2)

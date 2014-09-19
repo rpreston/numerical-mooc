@@ -48,7 +48,8 @@ def rocketEqn(argArray):
     return numpy.array([argArray[1],(-g) + numerator/denominator,1.])
 
 def euler_Step(argArray, f, dt):
-    return argArray + dt * f(argArray)
+    argArray_half = argArray + (dt/2.) * f(argArray)
+    return argArray + dt * f(argArray_half)
 
 def getPosVel():
     global u
