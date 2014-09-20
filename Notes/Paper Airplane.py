@@ -64,6 +64,7 @@ def f(u):
                       -g*cos(theta)/v + g/v_t**2*v,
                       v*cos(theta),
                       v*sin(theta)])
+                      
 def euler_step_order2(u,f,dt):
     u_half = u + (dt/2.)*f(u)
     return u + dt * f(u_half)
@@ -268,10 +269,10 @@ def monteCarlo(iterations,maxArgTheta,minArgTheta,maxArgV0,minArgV0):
     #print "init theta for max X"
     global_ThetaMax = maxTheta[tempArg]
     
-'''
-monteCarlo(1000.,thetaInit+0.8,thetaInit-0.8,v_t+v_t/2,v_t-v_t)
+
+monteCarlo(1000.,thetaInit+0.8,thetaInit-0.8,v_t+v_t/2.,v_t-v_t/2.)
 paramRun(global_ThetaMax,global_V0Max)
-'''
+
 plt.figure(figsize=(8,8))
 plt.grid(True)
 plt.xlabel(r"x", fontsize=18)
@@ -279,7 +280,7 @@ plt.ylabel(r"y", fontsize=18)
 plt.title("Glider Nominal Trajectory vs. Max Trajectory\n(v0 = %.2f , theta0 = %.2f vs. v0 = %.2f, theta0 = %.2f)\n" % (v_t, theta0, global_V0Max, global_ThetaMax), fontsize=18)
 
 nominalRun()
-#paramRun(global_ThetaMax,global_V0Max)
+paramRun(global_ThetaMax,global_V0Max)
 
 # get the glider's position with respect to the time
 #monteCarlo(50,7,2)
